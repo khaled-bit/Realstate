@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Lead {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  name        String
+  email       String?
+  phone       String?
+  whatsapp    String?
+
+  country     String
+  city        String?
+  nationality String   @default("Egyptian")
+
+  source      String
+  sourceUrl   String?
+  campaign    String?
+
+  status      String   @default("New")
+
+  budget      Float?
+  budgetCurrency String @default("USD")
+  propertyType   String?
+  preferredAreas String?
+
+  notes       String?
+  lastContact DateTime?
+
+  n8nWorkflowId String?
+  apolloId       String?
+  externalId     String?
+
+  activities  Activity[]
+  properties  LeadProperty[]
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      String
+  content   String
+  by        String   @default("System")
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  title       String
+  titleAr     String?
+  description String?
+  type        String
+  status      String   @default("Available")
+  price       Float
+  currency    String   @default("USD")
+  area        Float?
+  bedrooms    Int?
+  bathrooms   Int?
+  location    String
+  compound    String?
+  developer   String?
+  imageUrl    String?
+  features    String?
+  leads       LeadProperty[]
+}
+
+model LeadProperty {
+  id         String   @id @default(cuid())
+  leadId     String
+  propertyId String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  interest   String   @default("Interested")
+
+  @@unique([leadId, propertyId])
+}
+
+model N8nConfig {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  webhookUrl   String
+  description  String?
+  isActive     Boolean  @default(true)
+  lastTriggered DateTime?
+  createdAt    DateTime @default(now())
+}
+
+model Campaign {
+  id              String   @id @default(cuid())
+  name            String
+  type            String
+  status          String   @default("Draft")
+  targetCountries String
+  n8nWorkflowId   String?
+  leadsGenerated  Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
