@@ -1,0 +1,105 @@
+{
+  "name": "facebook-leads-to-crm",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "facebook-leads",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Facebook Lead Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "facebook-leads"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Facebook Lead Ads sends data in this format\nconst body = $input.first().json;\n\n// Handle verification challenge (Facebook sends GET for verification)\nif (body['hub.challenge']) {\n  return [{ json: { challenge: body['hub.challenge'] } }];\n}\n\n// Process lead gen data\nconst entry = body.entry?.[0];\nconst changes = entry?.changes?.[0];\nconst value = changes?.value;\n\nif (!value?.leads_retrieved) {\n  return [{ json: { skip: true } }];\n}\n\n// Map Facebook lead fields to CRM schema\nconst fieldData = {};\n(value.field_data || []).forEach(f => {\n  fieldData[f.name.toLowerCase().replace(/_/g, '')] = f.values?.[0] || '';\n});\n\nconst lead = {\n  name: fieldData.fullname || fieldData.name || `${fieldData.firstname || ''} ${fieldData.lastname || ''}`.trim(),\n  email: fieldData.email || '',\n  phone: fieldData.phonenumber || fieldData.phone || '',\n  whatsapp: fieldData.whatsappnumber || fieldData.whatsapp || fieldData.phonenumber || '',\n  country: fieldData.country || 'Egypt',\n  city: fieldData.city || '',\n  source: 'Facebook Lead Ad',\n  sourceUrl: `https://facebook.com/ads/manager`,\n  campaign: value.ad_name || value.campaign_name || '',\n  budget: fieldData.budget || fieldData.maxbudget || '',\n  propertyType: fieldData.propertytype || fieldData.property || '',\n  notes: `FB Ad: ${value.ad_name || ''} | Form: ${value.form_id || ''}`,\n  externalId: `fb_${value.leadgen_id || Date.now()}`,\n};\n\nreturn [{ json: lead }];"
+      },
+      "id": "transform-lead",
+      "name": "Transform FB Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "notEquals" }
+            }
+          ]
+        }
+      },
+      "id": "filter-valid",
+      "name": "Skip if Invalid",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_URL }}/api/webhooks/leads",
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "values": [
+            { "name": "name", "value": "={{ $json.name }}" },
+            { "name": "email", "value": "={{ $json.email }}" },
+            { "name": "phone", "value": "={{ $json.phone }}" },
+            { "name": "whatsapp", "value": "={{ $json.whatsapp }}" },
+            { "name": "country", "value": "={{ $json.country }}" },
+            { "name": "city", "value": "={{ $json.city }}" },
+            { "name": "source", "value": "={{ $json.source }}" },
+            { "name": "campaign", "value": "={{ $json.campaign }}" },
+            { "name": "budget", "value": "={{ $json.budget }}" },
+            { "name": "propertyType", "value": "={{ $json.propertyType }}" },
+            { "name": "notes", "value": "={{ $json.notes }}" },
+            { "name": "externalId", "value": "={{ $json.externalId }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "push-to-crm",
+      "name": "Push to CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ received: true }) }}"
+      },
+      "id": "respond",
+      "name": "Respond to Facebook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Facebook Lead Webhook": {
+      "main": [[{ "node": "Transform FB Lead", "type": "main", "index": 0 }]]
+    },
+    "Transform FB Lead": {
+      "main": [[{ "node": "Skip if Invalid", "type": "main", "index": 0 }]]
+    },
+    "Skip if Invalid": {
+      "main": [[{ "node": "Push to CRM", "type": "main", "index": 0 }]]
+    },
+    "Push to CRM": {
+      "main": [[{ "node": "Respond to Facebook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "leads-egypt" }]
+}

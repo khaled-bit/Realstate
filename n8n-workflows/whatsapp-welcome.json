@@ -1,0 +1,72 @@
+{
+  "name": "whatsapp-welcome",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-welcome",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "whatsapp-welcome"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\n// Format phone: ensure it starts with country code\nlet phone = (data.phone || '').replace(/\\s+/g, '').replace(/^0+/, '');\nif (!phone.startsWith('+')) {\n  // Default to Egypt +20 if no country code\n  phone = phone.startsWith('20') ? `+${phone}` : `+20${phone}`;\n}\n\n// Build bilingual message\nconst name = data.name || 'عزيزي العميل';\nconst country = data.country || '';\nconst budget = data.budget ? `$${Number(data.budget).toLocaleString()}` : '';\n\nconst message = `مرحباً ${name}! 🏠\n\nشكراً لاهتمامك بعقاراتنا في مصر.\nسيتواصل معك فريقنا قريباً لمساعدتك في إيجاد العقار المناسب.\n\n---\nHello ${name}! 🏠\n\nThank you for your interest in Egyptian real estate.\nOur team will contact you shortly to help find the perfect property${budget ? ` within your budget of ${budget}` : ''}.\n\nLeads Egypt | ${new Date().getFullYear()}`;\n\nreturn [{ json: { phone, message, name, leadId: data.leadId } }];"
+      },
+      "id": "format-message",
+      "name": "Format Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $credentials.phoneNumberId }}",
+        "recipientPhoneNumber": "={{ $json.phone }}",
+        "textBody": "={{ $json.message }}"
+      },
+      "id": "whatsapp-send",
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "credentials": {
+        "whatsAppApi": {
+          "name": "WhatsApp Business Cloud"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, phone: $('Format Message').first().json.phone }) }}"
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Format Message", "type": "main", "index": 0 }]]
+    },
+    "Format Message": {
+      "main": [[{ "node": "Send WhatsApp", "type": "main", "index": 0 }]]
+    },
+    "Send WhatsApp": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "leads-egypt" }]
+}
