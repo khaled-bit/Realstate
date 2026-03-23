@@ -189,6 +189,9 @@ model Property {
   developer   String?
   imageUrl    String?
   features    String?
+  lat         Float?
+  lng         Float?
+
   leads       LeadProperty[]
 }
 

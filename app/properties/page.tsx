@@ -72,9 +72,22 @@ export default async function PropertiesPage() {
                 </span>
               </div>
 
-              <div className="flex items-center gap-1 text-xs text-slate-500 mb-3">
-                <MapPin className="w-3 h-3" />
-                {p.location}
+              <div className="flex items-center justify-between mb-3">
+                <span className="flex items-center gap-1 text-xs text-slate-500">
+                  <MapPin className="w-3 h-3" />
+                  {p.location}
+                </span>
+                {p.lat && p.lng && (
+                  <a
+                    href={`https://www.google.com/maps?q=${p.lat},${p.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs text-blue-600 hover:underline flex items-center gap-0.5"
+                  >
+                    <MapPin className="w-3 h-3" /> Map
+                  </a>
+                )}
               </div>
 
               <div className="flex items-center gap-3 text-xs text-slate-600 mb-3">

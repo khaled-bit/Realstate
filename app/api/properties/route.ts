@@ -48,6 +48,8 @@ export async function POST(req: NextRequest) {
       developer: data.developer,
       imageUrl: data.imageUrl,
       features: data.features ? JSON.stringify(data.features) : null,
+      lat: data.lat ?? null,
+      lng: data.lng ?? null,
     },
   });
   return NextResponse.json(property, { status: 201 });
