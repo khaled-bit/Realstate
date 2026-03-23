@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.workspaceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const workspaceId = session.user.workspaceId;
+
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const country = searchParams.get("country");
@@ -10,7 +15,7 @@ export async function GET(req: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "50");
 
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { workspaceId };
   if (status) where.status = status;
   if (country) where.country = country;
   if (source) where.source = source;
@@ -28,7 +33,10 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "desc" },
       take: limit,
       skip: (page - 1) * limit,
-      include: { _count: { select: { activities: true } } },
+      include: {
+        _count: { select: { activities: true } },
+        assignedTo: { select: { id: true, name: true, email: true } },
+      },
     }),
     prisma.lead.count({ where }),
   ]);
@@ -37,9 +45,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.workspaceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const workspaceId = session.user.workspaceId;
+
   const data = await req.json();
   const lead = await prisma.lead.create({
     data: {
+      workspaceId,
       name: data.name,
       email: data.email,
       phone: data.phone,
@@ -59,6 +72,7 @@ export async function POST(req: NextRequest) {
       n8nWorkflowId: data.n8nWorkflowId,
       apolloId: data.apolloId,
       externalId: data.externalId,
+      assignedToId: data.assignedToId,
     },
   });
 

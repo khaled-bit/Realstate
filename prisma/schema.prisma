@@ -6,46 +6,139 @@ datasource db {
   provider = "postgresql"
 }
 
+model Workspace {
+  id               String    @id @default(cuid())
+  name             String
+  slug             String    @unique
+  plan             String    @default("trial")
+  stripeCustomerId String?
+  stripeSubId      String?
+  trialEndsAt      DateTime?
+  seats            Int       @default(3)
+  createdAt        DateTime  @default(now())
+
+  users        User[]
+  leads        Lead[]
+  properties   Property[]
+  campaigns    Campaign[]
+  templates    MessageTemplate[]
+  n8nConfigs   N8nConfig[]
+  sequences    Sequence[]
+  tasks        Task[]
+  appointments Appointment[]
+  calls        Call[]
+  invites      Invite[]
+}
+
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  name        String
+  password    String?
+  image       String?
+  role        String    @default("Agent")
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  assignedLeads Lead[]        @relation("AssignedLeads")
+  tasks         Task[]
+  appointments  Appointment[]
+  calls         Call[]
+  activities    Activity[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  email       String
+  role        String    @default("Agent")
+  token       String    @unique @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  accepted    Boolean   @default(false)
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
 model Lead {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String    @id @default(cuid())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assignedToId String?
+  assignedTo   User?     @relation("AssignedLeads", fields: [assignedToId], references: [id])
 
   name        String
   email       String?
   phone       String?
   whatsapp    String?
-
   country     String
   city        String?
   nationality String   @default("Egyptian")
-
   source      String
   sourceUrl   String?
   campaign    String?
-
   status      String   @default("New")
+  score       Int      @default(0)
 
-  budget      Float?
-  budgetCurrency String @default("USD")
+  budget         Float?
+  budgetCurrency String  @default("USD")
   propertyType   String?
   preferredAreas String?
+  notes          String?
+  lastContact    DateTime?
 
-  notes       String?
-  lastContact DateTime?
-
-  n8nWorkflowId String?
+  n8nWorkflowId  String?
   apolloId       String?
   externalId     String?
-
-  // Communication tracking
   whatsappSent   Boolean  @default(false)
   whatsappSentAt DateTime?
   lastWhatsapp   String?
 
-  activities  Activity[]
-  properties  LeadProperty[]
-  messages    Message[]
+  activities   Activity[]
+  properties   LeadProperty[]
+  messages     Message[]
+  tasks        Task[]
+  appointments Appointment[]
+  calls        Call[]
+  enrollments  SequenceEnrollment[]
 }
 
 model Activity {
@@ -56,6 +149,8 @@ model Activity {
   type      String
   content   String
   by        String   @default("System")
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
 }
 
 model Message {
@@ -63,24 +158,29 @@ model Message {
   createdAt DateTime @default(now())
   leadId    String
   lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  channel   String   // WhatsApp, SMS, Email
-  direction String   @default("Outbound") // Outbound, Inbound
+  channel   String
+  direction String   @default("Outbound")
   content   String
-  status    String   @default("Sent") // Sent, Delivered, Read, Failed
+  subject   String?
+  status    String   @default("Sent")
   n8nMsgId  String?
+  from      String?
+  to        String?
 }
 
 model Property {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   title       String
   titleAr     String?
   description String?
   type        String
-  status      String   @default("Available")
+  status      String    @default("Available")
   price       Float
-  currency    String   @default("USD")
+  currency    String    @default("USD")
   area        Float?
   bedrooms    Int?
   bathrooms   Int?
@@ -104,34 +204,132 @@ model LeadProperty {
 }
 
 model N8nConfig {
-  id           String   @id @default(cuid())
-  name         String   @unique
-  webhookUrl   String
-  description  String?
-  isActive     Boolean  @default(true)
+  id            String    @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name          String
+  webhookUrl    String
+  description   String?
+  isActive      Boolean   @default(true)
   lastTriggered DateTime?
-  createdAt    DateTime @default(now())
+  createdAt     DateTime  @default(now())
+
+  @@unique([workspaceId, name])
 }
 
 model Campaign {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   name            String
   type            String
-  status          String   @default("Draft")
+  status          String    @default("Draft")
   targetCountries String
   n8nWorkflowId   String?
-  leadsGenerated  Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  leadsGenerated  Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model MessageTemplate {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  channel   String   // WhatsApp, Email
-  language  String   @default("ar") // ar, en, both
-  subject   String?
-  body      String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  channel     String
+  language    String    @default("ar")
+  subject     String?
+  body        String
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@unique([workspaceId, name])
+}
+
+model Task {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  leadId       String?
+  lead         Lead?     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assignedToId String?
+  assignedTo   User?     @relation(fields: [assignedToId], references: [id])
+  title        String
+  notes        String?
+  dueDate      DateTime?
+  completed    Boolean   @default(false)
+  priority     String    @default("Medium")
+  createdAt    DateTime  @default(now())
+}
+
+model Appointment {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  leadId      String?
+  lead        Lead?     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agentId     String?
+  agent       User?     @relation(fields: [agentId], references: [id])
+  title       String
+  date        DateTime
+  duration    Int       @default(60)
+  location    String?
+  notes       String?
+  status      String    @default("Scheduled")
+  createdAt   DateTime  @default(now())
+}
+
+model Call {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  leadId       String
+  lead         Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agentId      String?
+  agent        User?     @relation(fields: [agentId], references: [id])
+  direction    String    @default("Outbound")
+  duration     Int?
+  recordingUrl String?
+  twilioCallId String?
+  notes        String?
+  status       String    @default("Completed")
+  createdAt    DateTime  @default(now())
+}
+
+model Sequence {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  steps       SequenceStep[]
+  enrollments SequenceEnrollment[]
+}
+
+model SequenceStep {
+  id         String   @id @default(cuid())
+  sequenceId String
+  sequence   Sequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  stepNumber Int
+  delayDays  Int      @default(1)
+  channel    String
+  subject    String?
+  body       String
+}
+
+model SequenceEnrollment {
+  id          String   @id @default(cuid())
+  sequenceId  String
+  sequence    Sequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  currentStep Int      @default(0)
+  status      String   @default("Active")
+  startedAt   DateTime @default(now())
+  nextRunAt   DateTime?
+
+  @@unique([sequenceId, leadId])
 }
