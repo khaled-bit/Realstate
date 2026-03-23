@@ -15,6 +15,7 @@ model Workspace {
   stripeSubId      String?
   trialEndsAt      DateTime?
   seats            Int       @default(3)
+  settings         Json?
   createdAt        DateTime  @default(now())
 
   users        User[]

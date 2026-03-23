@@ -101,6 +101,32 @@ export default function TeamPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const removeMember = async (userId: string, name: string) => {
+    if (!confirm(`Remove ${name} from the workspace?`)) return;
+    const res = await fetch("/api/team", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    if (res.ok) {
+      setMembers((prev) => prev.filter((m) => m.id !== userId));
+    } else {
+      const data = await res.json();
+      alert(data.error || "Failed to remove member");
+    }
+  };
+
+  const cancelInvite = async (inviteId: string) => {
+    const res = await fetch("/api/team/invite", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inviteId }),
+    });
+    if (res.ok) {
+      setInvites((prev) => prev.filter((i) => i.id !== inviteId));
+    }
+  };
+
   const canManage = ["Owner", "Admin"].includes(session?.user?.role || "");
 
   const initials = (name: string) =>
@@ -153,15 +179,24 @@ export default function TeamPage() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {canManage && member.role !== "Owner" && member.id !== session?.user?.id ? (
-                    <select
-                      value={member.role}
-                      onChange={(e) => changeRole(member.id, e.target.value)}
-                      className={`text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer ${ROLE_COLORS[member.role] || ROLE_COLORS.Agent}`}
-                    >
-                      <option value="Admin">Admin</option>
-                      <option value="Agent">Agent</option>
-                      <option value="Viewer">Viewer</option>
-                    </select>
+                    <>
+                      <select
+                        value={member.role}
+                        onChange={(e) => changeRole(member.id, e.target.value)}
+                        className={`text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer ${ROLE_COLORS[member.role] || ROLE_COLORS.Agent}`}
+                      >
+                        <option value="Admin">Admin</option>
+                        <option value="Agent">Agent</option>
+                        <option value="Viewer">Viewer</option>
+                      </select>
+                      <button
+                        onClick={() => removeMember(member.id, member.name)}
+                        className="text-slate-300 hover:text-red-600 transition-colors"
+                        title="Remove from workspace"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
                   ) : (
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 ${ROLE_COLORS[member.role] || ROLE_COLORS.Agent}`}>
                       <Shield className="w-3 h-3" />
@@ -243,7 +278,13 @@ export default function TeamPage() {
                     >
                       <Copy className="w-4 h-4" />
                     </button>
-                    <Trash2 className="w-4 h-4 text-slate-300" />
+                    <button
+                      onClick={() => cancelInvite(invite.id)}
+                      className="text-slate-300 hover:text-red-600 transition-colors"
+                      title="Cancel invite"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
               </div>

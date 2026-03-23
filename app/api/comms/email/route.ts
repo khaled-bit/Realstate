@@ -18,7 +18,17 @@ export async function POST(req: NextRequest) {
   const lead = await prisma.lead.findUnique({ where: { id: leadId, workspaceId } });
   if (!lead) return NextResponse.json({ error: "Lead not found" }, { status: 404 });
 
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
+  // Get SMTP config: prefer workspace settings over env vars
+  const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { settings: true } });
+  const ws = (workspace?.settings as Record<string, string> | null) || {};
+
+  const smtpHost = ws.smtpHost || process.env.SMTP_HOST;
+  const smtpPort = ws.smtpPort || process.env.SMTP_PORT || "587";
+  const smtpUser = ws.smtpUser || process.env.SMTP_USER;
+  const smtpPass = ws.smtpPass || process.env.SMTP_PASS;
+  const smtpFrom = ws.smtpFrom || process.env.SMTP_FROM || smtpUser;
+
+  if (!smtpHost || !smtpUser) {
     // Save as pending without sending
     const msg = await prisma.message.create({
       data: {
@@ -34,23 +44,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       message: msg,
       sent: false,
-      note: "SMTP not configured. Configure SMTP_HOST, SMTP_USER, SMTP_PASS env vars to send emails.",
+      note: "SMTP not configured. Set up SMTP in Settings → Email.",
     });
   }
 
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: process.env.SMTP_PORT === "465",
+    host: smtpHost,
+    port: parseInt(smtpPort),
+    secure: smtpPort === "465",
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: smtpUser,
+      pass: smtpPass,
     },
   });
 
   try {
     await transporter.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      from: smtpFrom,
       to,
       subject,
       text: body,

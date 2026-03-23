@@ -290,6 +290,41 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               )}
             </div>
           )}
+
+          {/* Linked Properties */}
+          {lead.properties && lead.properties.length > 0 && (
+            <div className="pt-2 border-t border-slate-100">
+              <label className="text-xs text-slate-500 flex items-center gap-1 mb-2">
+                <Building2 className="w-3 h-3" /> Interested Properties
+              </label>
+              <div className="space-y-2">
+                {lead.properties.map((lp) => (
+                  <Link
+                    key={lp.id}
+                    href={`/properties/${lp.property.id}`}
+                    className="flex items-center justify-between p-2 bg-slate-50 rounded-lg hover:bg-blue-50 transition-colors group"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate group-hover:text-blue-700">
+                        {lp.property.title}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {lp.property.location} · {PROPERTY_TYPES.find((t) => t.value === lp.property.type)?.label?.split(" - ")[0] || lp.property.type}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0 ml-3">
+                      <p className="text-sm font-semibold text-blue-700">
+                        {lp.property.currency} {Number(lp.property.price).toLocaleString()}
+                      </p>
+                      {lp.interest && (
+                        <p className="text-xs text-slate-400">{lp.interest}</p>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Communication Panel + Activity Feed */}

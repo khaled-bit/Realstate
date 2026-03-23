@@ -47,3 +47,17 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ invite, inviteUrl });
 }
+
+export async function DELETE(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.workspaceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const workspaceId = session.user.workspaceId;
+
+  if (!["Owner", "Admin"].includes(session.user.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { inviteId } = await req.json();
+  await prisma.invite.deleteMany({ where: { id: inviteId, workspaceId } });
+  return NextResponse.json({ success: true });
+}

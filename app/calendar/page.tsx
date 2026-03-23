@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, isToday, addMonths, subMonths, parseISO } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus, X, MapPin, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, MapPin, Clock, Edit2 } from "lucide-react";
 import Link from "next/link";
 
 type Appointment = {
@@ -32,6 +32,8 @@ export default function CalendarPage() {
     leadId: "",
   });
   const [saving, setSaving] = useState(false);
+  const [editingAppt, setEditingAppt] = useState<Appointment | null>(null);
+  const [editForm, setEditForm] = useState({ title: "", date: "", duration: "60", location: "", notes: "" });
 
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
@@ -83,6 +85,34 @@ export default function CalendarPage() {
   const deleteAppointment = async (id: string) => {
     setAppointments((prev) => prev.filter((a) => a.id !== id));
     await fetch(`/api/appointments/${id}`, { method: "DELETE" });
+  };
+
+  const openEdit = (appt: Appointment) => {
+    setEditingAppt(appt);
+    setEditForm({
+      title: appt.title,
+      date: format(parseISO(appt.date), "yyyy-MM-dd'T'HH:mm"),
+      duration: String(appt.duration),
+      location: appt.location || "",
+      notes: appt.notes || "",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editingAppt) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/appointments/${editingAppt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      const updated = await res.json();
+      setAppointments((prev) => prev.map((a) => (a.id === editingAppt.id ? updated : a)));
+      setEditingAppt(null);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -191,7 +221,7 @@ export default function CalendarPage() {
               ) : (
                 <div className="space-y-2">
                   {selectedDayAppointments.map((appt) => (
-                    <AppointmentCard key={appt.id} appt={appt} onDelete={deleteAppointment} />
+                    <AppointmentCard key={appt.id} appt={appt} onDelete={deleteAppointment} onEdit={openEdit} />
                   ))}
                 </div>
               )}
@@ -223,7 +253,7 @@ export default function CalendarPage() {
                     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                     .slice(0, 8)
                     .map((appt) => (
-                      <AppointmentCard key={appt.id} appt={appt} onDelete={deleteAppointment} />
+                      <AppointmentCard key={appt.id} appt={appt} onDelete={deleteAppointment} onEdit={openEdit} />
                     ))}
                 </div>
               )}
@@ -231,6 +261,71 @@ export default function CalendarPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Appointment Modal */}
+      {editingAppt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold text-slate-900 text-lg">Edit Appointment</h2>
+              <button onClick={() => setEditingAppt(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Title *"
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                className="input w-full"
+                autoFocus
+              />
+              <input
+                type="datetime-local"
+                value={editForm.date}
+                onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                className="input w-full"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">Duration (min)</label>
+                  <input
+                    type="number"
+                    value={editForm.duration}
+                    onChange={(e) => setEditForm({ ...editForm, duration: e.target.value })}
+                    className="input w-full"
+                    min="15"
+                    step="15"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">Location</label>
+                  <input
+                    type="text"
+                    placeholder="Location"
+                    value={editForm.location}
+                    onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                    className="input w-full"
+                  />
+                </div>
+              </div>
+              <textarea
+                placeholder="Notes (optional)"
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                className="input w-full h-20 resize-none"
+              />
+              <div className="flex gap-2 pt-2">
+                <button onClick={saveEdit} disabled={saving || !editForm.title || !editForm.date} className="btn-primary flex-1">
+                  {saving ? "Saving..." : "Save Changes"}
+                </button>
+                <button onClick={() => setEditingAppt(null)} className="btn-secondary px-4">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Appointment Modal */}
       {showModal && (
@@ -300,7 +395,15 @@ export default function CalendarPage() {
   );
 }
 
-function AppointmentCard({ appt, onDelete }: { appt: Appointment; onDelete: (id: string) => void }) {
+function AppointmentCard({
+  appt,
+  onDelete,
+  onEdit,
+}: {
+  appt: Appointment;
+  onDelete: (id: string) => void;
+  onEdit: (appt: Appointment) => void;
+}) {
   return (
     <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 group">
       <div className="flex items-start justify-between gap-2">
@@ -324,12 +427,22 @@ function AppointmentCard({ appt, onDelete }: { appt: Appointment; onDelete: (id:
             </Link>
           )}
         </div>
-        <button
-          onClick={() => onDelete(appt.id)}
-          className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-600 transition-all shrink-0"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+          <button
+            onClick={() => onEdit(appt)}
+            className="text-slate-400 hover:text-blue-600"
+            title="Edit"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => onDelete(appt.id)}
+            className="text-slate-400 hover:text-red-600"
+            title="Delete"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

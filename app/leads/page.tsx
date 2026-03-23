@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { COUNTRIES, LEAD_STATUSES, LEAD_SOURCES } from "@/lib/constants";
-import { Users, Plus, Search, Filter, Phone, Mail, MessageCircle } from "lucide-react";
+import { Users, Plus, Search, Filter, Phone, Mail, MessageCircle, Trash2, ChevronLeft, ChevronRight, CheckSquare, Square } from "lucide-react";
 
 interface Lead {
   id: string;
@@ -28,6 +28,11 @@ export default function LeadsPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterCountry, setFilterCountry] = useState("");
   const [filterSource, setFilterSource] = useState("");
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState("");
+  const [bulkWorking, setBulkWorking] = useState(false);
+  const limit = 50;
 
   const fetchLeads = useCallback(async () => {
     setLoading(true);
@@ -36,17 +41,74 @@ export default function LeadsPage() {
     if (filterStatus) params.set("status", filterStatus);
     if (filterCountry) params.set("country", filterCountry);
     if (filterSource) params.set("source", filterSource);
+    params.set("page", String(page));
+    params.set("limit", String(limit));
     const res = await fetch(`/api/leads?${params}`);
     const data = await res.json();
     setLeads(data.leads || []);
     setTotal(data.total || 0);
+    setSelected(new Set());
     setLoading(false);
-  }, [search, filterStatus, filterCountry, filterSource]);
+  }, [search, filterStatus, filterCountry, filterSource, page]);
 
   useEffect(() => {
     const t = setTimeout(fetchLeads, 300);
     return () => clearTimeout(t);
   }, [fetchLeads]);
+
+  // Reset page on filter change
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterStatus, filterCountry, filterSource]);
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selected.size === leads.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(leads.map((l) => l.id)));
+    }
+  };
+
+  const applyBulkAction = async () => {
+    if (!bulkAction || selected.size === 0) return;
+    setBulkWorking(true);
+    const ids = Array.from(selected);
+
+    if (bulkAction === "delete") {
+      if (!confirm(`Delete ${ids.length} lead(s)? This cannot be undone.`)) {
+        setBulkWorking(false);
+        return;
+      }
+      await Promise.all(ids.map((id) => fetch(`/api/leads/${id}`, { method: "DELETE" })));
+    } else {
+      // status change
+      await Promise.all(
+        ids.map((id) =>
+          fetch(`/api/leads/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: bulkAction }),
+          })
+        )
+      );
+    }
+
+    setBulkWorking(false);
+    setBulkAction("");
+    setSelected(new Set());
+    fetchLeads();
+  };
+
+  const totalPages = Math.ceil(total / limit);
 
   return (
     <div className="p-4 md:p-6">
@@ -110,11 +172,53 @@ export default function LeadsPage() {
         </div>
       </div>
 
+      {/* Bulk actions bar */}
+      {selected.size > 0 && (
+        <div className="card p-3 mb-3 flex items-center gap-3 bg-blue-50 border border-blue-200">
+          <span className="text-sm font-medium text-blue-900">{selected.size} selected</span>
+          <select
+            className="input text-sm flex-1 max-w-xs"
+            value={bulkAction}
+            onChange={(e) => setBulkAction(e.target.value)}
+          >
+            <option value="">Bulk action...</option>
+            <optgroup label="Change Status">
+              {LEAD_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>→ {s.label}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Actions">
+              <option value="delete">🗑 Delete selected</option>
+            </optgroup>
+          </select>
+          <button
+            onClick={applyBulkAction}
+            disabled={!bulkAction || bulkWorking}
+            className="btn-primary text-sm px-4 disabled:opacity-50"
+          >
+            {bulkWorking ? "Working..." : "Apply"}
+          </button>
+          <button
+            onClick={() => setSelected(new Set())}
+            className="text-sm text-slate-500 hover:text-slate-700"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="card overflow-hidden overflow-x-auto">
         <table className="w-full text-sm min-w-[600px]">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50">
+              <th className="px-3 py-3 w-10">
+                <button onClick={toggleSelectAll} className="text-slate-400 hover:text-slate-700">
+                  {selected.size === leads.length && leads.length > 0
+                    ? <CheckSquare className="w-4 h-4 text-blue-600" />
+                    : <Square className="w-4 h-4" />}
+                </button>
+              </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Name</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Country</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Contact</th>
@@ -128,7 +232,7 @@ export default function LeadsPage() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
+                  {Array.from({ length: 8 }).map((_, j) => (
                     <td key={j} className="px-4 py-3">
                       <div className="h-4 bg-slate-100 rounded animate-pulse" />
                     </td>
@@ -137,7 +241,7 @@ export default function LeadsPage() {
               ))
             ) : leads.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
+                <td colSpan={8} className="px-4 py-12 text-center text-slate-400">
                   <Filter className="w-8 h-8 mx-auto mb-2 opacity-30" />
                   No leads found. Try adjusting filters or{" "}
                   <Link href="/leads/new" className="text-blue-600 hover:underline">add one manually</Link>.
@@ -147,8 +251,16 @@ export default function LeadsPage() {
               leads.map((lead) => {
                 const country = COUNTRIES.find((c) => c.value === lead.country);
                 const status = LEAD_STATUSES.find((s) => s.value === lead.status);
+                const isSelected = selected.has(lead.id);
                 return (
-                  <tr key={lead.id} className="table-row-hover">
+                  <tr key={lead.id} className={`table-row-hover ${isSelected ? "bg-blue-50" : ""}`}>
+                    <td className="px-3 py-3">
+                      <button onClick={() => toggleSelect(lead.id)} className="text-slate-400 hover:text-slate-700">
+                        {isSelected
+                          ? <CheckSquare className="w-4 h-4 text-blue-600" />
+                          : <Square className="w-4 h-4" />}
+                      </button>
+                    </td>
                     <td className="px-4 py-3">
                       <Link href={`/leads/${lead.id}`} className="block">
                         <div className="flex items-center gap-3">
@@ -220,6 +332,47 @@ export default function LeadsPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-sm text-slate-500">
+            Page {page} of {totalPages} · {total} leads
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="btn-secondary px-3 py-2 disabled:opacity-40"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const pageNum = Math.max(1, Math.min(page - 2, totalPages - 4)) + i;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setPage(pageNum)}
+                  className={`w-9 h-9 text-sm rounded-lg ${
+                    pageNum === page
+                      ? "bg-blue-600 text-white font-semibold"
+                      : "btn-secondary"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="btn-secondary px-3 py-2 disabled:opacity-40"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
