@@ -308,7 +308,7 @@ export default function CommPanel({ leadId, leadName, phone, whatsapp }: CommPan
             {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         </div>
-        <p className="text-xs text-slate-400 mt-1">Ctrl+Enter to send · Requires n8n 'whatsapp-send' workflow</p>
+        <p className="text-xs text-slate-400 mt-1 hidden sm:block">Ctrl+Enter to send · Requires n8n 'whatsapp-send' workflow</p>
       </div>
     </div>
   );

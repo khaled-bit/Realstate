@@ -45,7 +45,7 @@ export default function NewCampaignPage() {
   };
 
   return (
-    <div className="p-6 max-w-2xl">
+    <div className="p-4 md:p-6 max-w-2xl">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/campaigns" className="text-slate-500 hover:text-slate-900">
           <ArrowLeft className="w-5 h-5" />

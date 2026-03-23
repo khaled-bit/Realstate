@@ -83,7 +83,7 @@ export default function N8nPage() {
   };
 
   return (
-    <div className="p-6 max-w-4xl">
+    <div className="p-4 md:p-6 max-w-4xl">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -106,7 +106,7 @@ export default function N8nPage() {
         <p className="text-sm text-blue-800 mb-2">
           In n8n, use an <strong>HTTP Request node</strong> to POST leads to this CRM:
         </p>
-        <code className="block bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm font-mono text-blue-900">
+        <code className="block bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm font-mono text-blue-900 overflow-x-auto">
           POST http://YOUR_APP_URL/api/webhooks/leads
         </code>
         <p className="text-xs text-blue-700 mt-2">

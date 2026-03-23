@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -10,6 +11,8 @@ import {
   Settings,
   Zap,
   ChevronRight,
+  Menu,
+  X,
 } from "lucide-react";
 
 const navItems = [
@@ -23,22 +26,27 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  return (
-    <aside className="w-60 min-h-screen bg-white border-r border-slate-200 flex flex-col fixed left-0 top-0">
-      {/* Logo */}
-      <div className="px-4 py-5 border-b border-slate-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Building2 className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <p className="font-bold text-slate-900 text-sm leading-tight">Leads Egypt</p>
-            <p className="text-xs text-slate-500">Real Estate CRM</p>
-          </div>
-        </div>
+  // Close drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  const logoBlock = (
+    <div className="flex items-center gap-2.5">
+      <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
+        <Building2 className="w-4 h-4 text-white" />
       </div>
+      <div>
+        <p className="font-bold text-slate-900 text-sm leading-tight">Leads Egypt</p>
+        <p className="text-xs text-slate-500">Real Estate CRM</p>
+      </div>
+    </div>
+  );
 
+  const navContent = (
+    <>
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         {navItems.map(({ href, label, icon: Icon }) => {
@@ -74,6 +82,55 @@ export default function Sidebar() {
           </div>
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* ── Mobile top bar ── */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-slate-200 flex items-center justify-between px-4 h-14">
+        {logoBlock}
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="p-2 rounded-lg text-slate-600 hover:bg-slate-100"
+          aria-label="Open menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* ── Mobile overlay backdrop ── */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/40"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* ── Sidebar (desktop: always visible | mobile: slide-in drawer) ── */}
+      <aside
+        className={`
+          fixed left-0 top-0 h-full z-50 w-64 bg-white border-r border-slate-200 flex flex-col
+          transition-transform duration-200 ease-in-out
+          ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+          md:translate-x-0 md:w-60
+        `}
+      >
+        {/* Sidebar header */}
+        <div className="px-4 py-5 border-b border-slate-100 flex items-center justify-between">
+          {logoBlock}
+          {/* Close button — mobile only */}
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="md:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100"
+            aria-label="Close menu"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {navContent}
+      </aside>
+    </>
   );
 }

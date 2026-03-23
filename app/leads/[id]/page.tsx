@@ -101,7 +101,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-slate-200 rounded w-48" />
           <div className="h-48 bg-slate-100 rounded-xl" />
@@ -116,19 +116,19 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   const status = LEAD_STATUSES.find((s) => s.value === lead.status);
 
   return (
-    <div className="p-6 max-w-5xl">
+    <div className="p-4 md:p-6 max-w-5xl">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Link href="/leads" className="text-slate-500 hover:text-slate-900">
+      <div className="flex items-start justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link href="/leads" className="text-slate-500 hover:text-slate-900 shrink-0">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-xl font-bold text-blue-700">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-full flex items-center justify-center text-lg md:text-xl font-bold text-blue-700 shrink-0">
             {lead.name.charAt(0).toUpperCase()}
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">{lead.name}</h1>
-            <div className="flex items-center gap-2 mt-0.5">
+          <div className="min-w-0">
+            <h1 className="text-lg md:text-xl font-bold text-slate-900 truncate">{lead.name}</h1>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span className={`badge ${status?.color || "bg-slate-100 text-slate-600"}`}>
                 {status?.label || lead.status}
               </span>
@@ -138,22 +138,22 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {editing ? (
             <>
-              <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-1">
-                <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save"}
+              <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-1 text-xs md:text-sm px-3">
+                <Save className="w-4 h-4" /> <span className="hidden sm:inline">{saving ? "Saving..." : "Save"}</span>
               </button>
-              <button onClick={() => setEditing(false)} className="btn-secondary flex items-center gap-1">
-                <X className="w-4 h-4" /> Cancel
+              <button onClick={() => setEditing(false)} className="btn-secondary flex items-center gap-1 text-xs md:text-sm px-3">
+                <X className="w-4 h-4" /> <span className="hidden sm:inline">Cancel</span>
               </button>
             </>
           ) : (
             <>
-              <button onClick={() => setEditing(true)} className="btn-secondary flex items-center gap-1">
-                <Edit2 className="w-4 h-4" /> Edit
+              <button onClick={() => setEditing(true)} className="btn-secondary flex items-center gap-1 text-xs md:text-sm px-3">
+                <Edit2 className="w-4 h-4" /> <span className="hidden sm:inline">Edit</span>
               </button>
-              <button onClick={handleDelete} className="btn-secondary text-red-600 hover:bg-red-50 flex items-center gap-1">
+              <button onClick={handleDelete} className="btn-secondary text-red-600 hover:bg-red-50 flex items-center gap-1 px-3">
                 <Trash2 className="w-4 h-4" />
               </button>
             </>
@@ -186,7 +186,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
         <div className="card p-4 lg:col-span-2 space-y-4 order-2 lg:order-1">
           <h2 className="font-semibold text-slate-900">Lead Details</h2>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs text-slate-500 flex items-center gap-1"><Mail className="w-3 h-3" /> Email</label>
               {editing ? (
