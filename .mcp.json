@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "n8n-mcp": {
+      "type": "http",
+      "url": "https://tttttttatat.app.n8n.cloud/mcp-server/http",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1ZjZjZWZmZi0wODk3LTQzMjMtOGZjNi1mMjc3MWU0N2RhYTYiLCJpc3MiOiJuOG4iLCJhdWQiOiJtY3Atc2VydmVyLWFwaSIsImp0aSI6IjEzNjYwNjRhLWZhODQtNDc0Yy1hYmI2LTBlYTYwOTNiZjZkYiIsImlhdCI6MTc3NDIzMDE2MX0.5HIfGJGKFq99YpyQxUvHsFcvkTPwNEMyIhnPaCLOubI"
+      }
+    }
+  }
+}
