@@ -15,6 +15,16 @@ interface N8nConfig {
 
 const DEFAULT_WORKFLOWS = [
   {
+    name: "whatsapp-welcome",
+    description: "🟢 Auto-send welcome WhatsApp when a new lead is created",
+    webhookUrl: "",
+  },
+  {
+    name: "whatsapp-send",
+    description: "🟢 Send manual WhatsApp messages from the lead detail page",
+    webhookUrl: "",
+  },
+  {
     name: "apollo-scrape-gulf",
     description: "Scrape Apollo.io for Egyptian expats in Gulf countries",
     webhookUrl: "",
@@ -22,11 +32,6 @@ const DEFAULT_WORKFLOWS = [
   {
     name: "linkedin-scrape",
     description: "Scrape LinkedIn for potential Egyptian real estate buyers",
-    webhookUrl: "",
-  },
-  {
-    name: "receive-leads",
-    description: "Receive leads from external sources into this CRM",
     webhookUrl: "",
   },
 ];
@@ -226,6 +231,44 @@ export default function N8nPage() {
             </div>
           ))
         )}
+      </div>
+
+      {/* WhatsApp Integration Guide */}
+      <div className="card p-4 mt-6 border-green-200 bg-green-50">
+        <h3 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-green-700" />
+          WhatsApp Integration Setup
+        </h3>
+        <div className="space-y-3 text-sm text-green-900">
+          <p className="text-xs text-green-700 font-medium">You need 2 workflows: <strong>whatsapp-welcome</strong> (auto on new lead) and <strong>whatsapp-send</strong> (manual send)</p>
+
+          <div className="bg-white rounded-lg p-3 border border-green-200 text-slate-700 space-y-2">
+            <p className="font-semibold text-xs text-slate-900">n8n Workflow Structure (both workflows):</p>
+            <div className="font-mono text-xs space-y-1">
+              <div className="flex items-center gap-2"><span className="bg-green-100 text-green-800 px-2 py-0.5 rounded">1</span> Webhook Trigger (POST)</div>
+              <div className="flex items-center gap-2"><span className="bg-green-100 text-green-800 px-2 py-0.5 rounded">2</span> WhatsApp Business Cloud API node</div>
+              <div className="ml-6 text-slate-500">— or — Twilio WhatsApp node</div>
+              <div className="ml-6 text-slate-500">— or — HTTP Request to 360Dialog / WATI</div>
+              <div className="flex items-center gap-2"><span className="bg-green-100 text-green-800 px-2 py-0.5 rounded">3</span> Set message: <code className="bg-slate-100 px-1 rounded">{`{{$json.message}}`}</code> to phone: <code className="bg-slate-100 px-1 rounded">{`{{$json.phone}}`}</code></div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div className="bg-white rounded-lg p-3 border border-green-200">
+              <p className="font-semibold text-slate-900 mb-1">whatsapp-welcome</p>
+              <p className="text-slate-600">Triggered automatically when a lead is created. Receives: <code className="bg-slate-100 px-1 rounded">name, phone, message, country, budget</code></p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-green-200">
+              <p className="font-semibold text-slate-900 mb-1">whatsapp-send</p>
+              <p className="text-slate-600">Triggered from the lead detail page. Receives: <code className="bg-slate-100 px-1 rounded">leadId, name, phone, channel, message</code></p>
+            </div>
+          </div>
+
+          <p className="text-xs text-green-700">
+            💡 <strong>Free option:</strong> Use Meta&apos;s WhatsApp Business Cloud API (free 1000 conversations/month).
+            In n8n: Add credential → WhatsApp Business Cloud → paste your Phone Number ID + Token from Meta Developer Dashboard.
+          </p>
+        </div>
       </div>
 
       {/* Apollo.io Integration Guide */}

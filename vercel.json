@@ -1,0 +1,11 @@
+{
+  "buildCommand": "npx prisma generate && next build",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "env": {
+    "DATABASE_URL": "@database_url",
+    "DIRECT_URL": "@direct_url",
+    "NEXT_PUBLIC_APP_URL": "@next_public_app_url",
+    "N8N_BASE_URL": "@n8n_base_url"
+  }
+}

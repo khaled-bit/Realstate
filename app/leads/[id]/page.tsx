@@ -8,6 +8,7 @@ import {
   ArrowLeft, Phone, Mail, MessageCircle, Edit2, Save, X,
   MapPin, Calendar, DollarSign, Activity, Building2, Trash2
 } from "lucide-react";
+import CommPanel from "@/components/CommPanel";
 
 interface LeadDetail {
   id: string;
@@ -182,7 +183,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Info Card */}
-        <div className="card p-4 lg:col-span-2 space-y-4">
+        <div className="card p-4 lg:col-span-2 space-y-4 order-2 lg:order-1">
           <h2 className="font-semibold text-slate-900">Lead Details</h2>
 
           <div className="grid grid-cols-2 gap-4">
@@ -291,6 +292,16 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
           )}
         </div>
 
+        {/* Communication Panel + Activity Feed */}
+        <div className="flex flex-col gap-4 order-1 lg:order-2">
+        {/* Comm Panel */}
+        <CommPanel
+          leadId={lead.id}
+          leadName={lead.name}
+          phone={lead.phone}
+          whatsapp={lead.whatsapp}
+        />
+
         {/* Activity Feed */}
         <div className="card p-4">
           <h2 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
@@ -341,6 +352,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               <p className="text-xs text-slate-400 text-center py-4">No activities yet</p>
             )}
           </div>
+        </div>
         </div>
       </div>
     </div>

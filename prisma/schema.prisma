@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Lead {
@@ -38,8 +38,14 @@ model Lead {
   apolloId       String?
   externalId     String?
 
+  // Communication tracking
+  whatsappSent   Boolean  @default(false)
+  whatsappSentAt DateTime?
+  lastWhatsapp   String?
+
   activities  Activity[]
   properties  LeadProperty[]
+  messages    Message[]
 }
 
 model Activity {
@@ -50,6 +56,18 @@ model Activity {
   type      String
   content   String
   by        String   @default("System")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  channel   String   // WhatsApp, SMS, Email
+  direction String   @default("Outbound") // Outbound, Inbound
+  content   String
+  status    String   @default("Sent") // Sent, Delivered, Read, Failed
+  n8nMsgId  String?
 }
 
 model Property {
@@ -105,4 +123,15 @@ model Campaign {
   leadsGenerated  Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model MessageTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  channel   String   // WhatsApp, Email
+  language  String   @default("ar") // ar, en, both
+  subject   String?
+  body      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
 }

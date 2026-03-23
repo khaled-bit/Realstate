@@ -72,5 +72,15 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // Auto-welcome WhatsApp (non-blocking)
+  if (lead.whatsapp || lead.phone) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    fetch(`${appUrl}/api/comms/auto-welcome`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ leadId: lead.id }),
+    }).catch(() => {});
+  }
+
   return NextResponse.json(lead, { status: 201 });
 }

@@ -98,6 +98,18 @@ export async function POST(req: NextRequest) {
 
   const results = await Promise.all(leads.map(saveLead));
 
+  // Fire auto-welcome WhatsApp for truly new leads (non-blocking)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  for (const lead of results) {
+    if (lead && (lead.whatsapp || lead.phone)) {
+      fetch(`${appUrl}/api/comms/auto-welcome`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadId: lead.id }),
+      }).catch(() => {});
+    }
+  }
+
   return NextResponse.json({
     received: leads.length,
     saved: results.length,
