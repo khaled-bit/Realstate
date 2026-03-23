@@ -1,11 +1,18 @@
 export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Building2, Plus, MapPin, BedDouble, Maximize } from "lucide-react";
 import { PROPERTY_TYPES } from "@/lib/constants";
 
 export default async function PropertiesPage() {
+  const session = await auth();
+  if (!session?.user?.workspaceId) redirect("/login");
+  const workspaceId = session.user.workspaceId;
+
   const properties = await prisma.property.findMany({
+    where: { workspaceId },
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { leads: true } } },
   });
