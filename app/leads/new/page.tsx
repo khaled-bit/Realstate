@@ -23,8 +23,6 @@ export default function NewLeadPage() {
     propertyType: "",
     preferredAreas: [] as string[],
     notes: "",
-    apolloId: "",
-    externalId: "",
   });
 
   const set = (field: string, value: string | string[]) =>
@@ -235,41 +233,16 @@ export default function NewLeadPage() {
           </div>
         </div>
 
-        {/* Notes & IDs */}
+        {/* Notes */}
         <div className="card p-4">
-          <h2 className="font-semibold text-slate-900 mb-4">Notes & External IDs</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Notes</label>
-              <textarea
-                className="input resize-none"
-                rows={3}
-                placeholder="Client preferences, notes from conversation..."
-                value={form.notes}
-                onChange={(e) => set("notes", e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Apollo ID</label>
-                <input
-                  className="input font-mono text-xs"
-                  placeholder="apollo_..."
-                  value={form.apolloId}
-                  onChange={(e) => set("apolloId", e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">External ID</label>
-                <input
-                  className="input font-mono text-xs"
-                  placeholder="ext_..."
-                  value={form.externalId}
-                  onChange={(e) => set("externalId", e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
+          <h2 className="font-semibold text-slate-900 mb-4">Notes</h2>
+          <textarea
+            className="input resize-none w-full"
+            rows={3}
+            placeholder="Client preferences, notes from conversation..."
+            value={form.notes}
+            onChange={(e) => set("notes", e.target.value)}
+          />
         </div>
 
         <div className="flex gap-3">
