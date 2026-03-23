@@ -169,7 +169,8 @@ export default function SettingsPage() {
         {[
           { id: "workspace", label: "Workspace" },
           { id: "smtp", label: "Email / SMTP" },
-          { id: "n8n", label: "n8n & WhatsApp" },
+          { id: "whatsapp", label: "WhatsApp" },
+          { id: "n8n", label: "n8n" },
           { id: "apollo", label: "Apollo.io" },
           { id: "twilio", label: "Twilio" },
           { id: "stripe", label: "Stripe" },
@@ -221,46 +222,41 @@ export default function SettingsPage() {
           <TestResultBadge result={t("smtp")} />
         </Section>
 
-        {/* ── n8n + WhatsApp ────────────────────────────── */}
-        <Section id="n8n" icon={Zap} title="n8n Automation & WhatsApp" color="bg-orange-50 text-orange-800" badge="Automation">
+        {/* ── WhatsApp ──────────────────────────────────── */}
+        <Section id="whatsapp" icon={MessageCircle} title="WhatsApp" color="bg-green-50 text-green-800" badge="Messaging">
           <p className="text-xs text-slate-500">
-            Configure your n8n instance and paste the webhook URLs from your imported n8n workflows.
-            WhatsApp messaging is handled entirely through n8n — no direct API credentials needed.
+            WhatsApp is sent via your n8n workflows. Paste the webhook URL from each workflow's Webhook node below.
           </p>
 
+          <Field label="Welcome Webhook" hint="Auto-sent when a new lead arrives · from 'whatsapp-welcome' workflow → Webhook node → Production URL">
+            <input className="input font-mono text-xs" value={settings.whatsapp?.welcomeWebhook || ""} onChange={e => set("whatsapp", "welcomeWebhook", e.target.value)} placeholder="http://localhost:5678/webhook/whatsapp-welcome" />
+          </Field>
+          <Field label="Send Webhook" hint="Manual send from lead page · from 'whatsapp-send' workflow → Webhook node → Production URL">
+            <input className="input font-mono text-xs" value={settings.whatsapp?.sendWebhook || ""} onChange={e => set("whatsapp", "sendWebhook", e.target.value)} placeholder="http://localhost:5678/webhook/whatsapp-send" />
+          </Field>
+          <Field label="Facebook Leads Webhook" hint="Receives Facebook ad leads · from 'facebook-leads-to-crm' workflow → Webhook node → Production URL">
+            <input className="input font-mono text-xs" value={settings.whatsapp?.facebookWebhook || ""} onChange={e => set("whatsapp", "facebookWebhook", e.target.value)} placeholder="http://localhost:5678/webhook/facebook-leads" />
+          </Field>
+
+          <div className="flex items-center gap-3 pt-1">
+            <TestBtn status={t("whatsapp").status} onClick={() => runTest("whatsapp", { sendWebhook: settings.whatsapp?.sendWebhook || "" })} label="Ping Send Webhook" />
+          </div>
+          <TestResultBadge result={t("whatsapp")} />
+        </Section>
+
+        {/* ── n8n ───────────────────────────────────────── */}
+        <Section id="n8n" icon={Zap} title="n8n Automation" color="bg-orange-50 text-orange-800" badge="Automation">
+          <p className="text-xs text-slate-500">Your n8n instance URL. Used to verify connectivity and trigger workflows.</p>
           <Field label="n8n Base URL" hint="e.g. http://localhost:5678 or https://your-n8n.railway.app">
             <input className="input font-mono text-xs" value={settings.n8n?.baseUrl || ""} onChange={e => set("n8n", "baseUrl", e.target.value)} placeholder="http://localhost:5678" />
           </Field>
-
           <div className="flex items-center gap-3">
-            <TestBtn status={t("n8n").status} onClick={() => runTest("n8n", { baseUrl: settings.n8n?.baseUrl || "" })} label="Test n8n Connection" />
+            <TestBtn status={t("n8n").status} onClick={() => runTest("n8n", { baseUrl: settings.n8n?.baseUrl || "" })} />
             <a href="/n8n" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
               Manage workflows <ExternalLink className="w-3 h-3" />
             </a>
           </div>
           <TestResultBadge result={t("n8n")} />
-
-          <div className="border-t border-orange-100 pt-4 space-y-3">
-            <p className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
-              <MessageCircle className="w-3.5 h-3.5 text-green-600" /> WhatsApp Webhook URLs
-            </p>
-            <p className="text-xs text-slate-500">Open each workflow in n8n → click the Webhook node → copy the URL and paste below.</p>
-
-            <Field label="Welcome Webhook (auto-sent on new lead)" hint="From the 'whatsapp-welcome' workflow → Webhook node → Production URL">
-              <input className="input font-mono text-xs" value={settings.whatsapp?.welcomeWebhook || ""} onChange={e => set("whatsapp", "welcomeWebhook", e.target.value)} placeholder="http://localhost:5678/webhook/whatsapp-welcome" />
-            </Field>
-            <Field label="Send Webhook (manual send from lead page)" hint="From the 'whatsapp-send' workflow → Webhook node → Production URL">
-              <input className="input font-mono text-xs" value={settings.whatsapp?.sendWebhook || ""} onChange={e => set("whatsapp", "sendWebhook", e.target.value)} placeholder="http://localhost:5678/webhook/whatsapp-send" />
-            </Field>
-            <Field label="Facebook Leads Webhook" hint="From the 'facebook-leads-to-crm' workflow → Webhook node → Production URL">
-              <input className="input font-mono text-xs" value={settings.whatsapp?.facebookWebhook || ""} onChange={e => set("whatsapp", "facebookWebhook", e.target.value)} placeholder="http://localhost:5678/webhook/facebook-leads" />
-            </Field>
-
-            <div className="flex items-center gap-3">
-              <TestBtn status={t("whatsapp").status} onClick={() => runTest("whatsapp", { sendWebhook: settings.whatsapp?.sendWebhook || "" })} label="Ping WhatsApp Webhook" />
-            </div>
-            <TestResultBadge result={t("whatsapp")} />
-          </div>
         </Section>
 
         {/* ── Apollo.io ─────────────────────────────────── */}
