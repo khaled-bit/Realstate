@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.workspaceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const workspaceId = session.user.workspaceId;
+
   const data = await req.json();
   const { workflowName, payload } = data;
 
   const config = await prisma.n8nConfig.findUnique({
-    where: { name: workflowName },
+    where: { workspaceId_name: { workspaceId, name: workflowName } },
   });
 
   if (!config) {
@@ -29,7 +34,7 @@ export async function POST(req: NextRequest) {
     });
 
     await prisma.n8nConfig.update({
-      where: { name: workflowName },
+      where: { workspaceId_name: { workspaceId, name: workflowName } },
       data: { lastTriggered: new Date() },
     });
 

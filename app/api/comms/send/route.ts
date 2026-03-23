@@ -7,11 +7,16 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.workspaceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const workspaceId = session.user.workspaceId;
+
   const { leadId, channel, message, templateName } = await req.json();
 
-  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  const lead = await prisma.lead.findUnique({ where: { id: leadId, workspaceId } });
   if (!lead) return NextResponse.json({ error: "Lead not found" }, { status: 404 });
 
   const phone = channel === "WhatsApp" ? lead.whatsapp || lead.phone : lead.phone;
@@ -21,7 +26,7 @@ export async function POST(req: NextRequest) {
 
   // Find the n8n whatsapp workflow
   const workflowName = channel === "WhatsApp" ? "whatsapp-send" : "sms-send";
-  const config = await prisma.n8nConfig.findUnique({ where: { name: workflowName } });
+  const config = await prisma.n8nConfig.findUnique({ where: { workspaceId_name: { workspaceId, name: workflowName } } });
 
   let n8nResult: { success: boolean; msgId?: string } = { success: false };
 
@@ -44,7 +49,7 @@ export async function POST(req: NextRequest) {
       n8nResult = { success: res.ok, msgId: data.msgId || data.id };
 
       await prisma.n8nConfig.update({
-        where: { name: workflowName },
+        where: { workspaceId_name: { workspaceId, name: workflowName } },
         data: { lastTriggered: new Date() },
       });
     } catch {

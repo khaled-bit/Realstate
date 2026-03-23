@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useSession, signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Users,
@@ -13,25 +14,50 @@ import {
   ChevronRight,
   Menu,
   X,
+  Kanban,
+  CheckSquare,
+  Calendar,
+  Inbox,
+  GitBranch,
+  UserPlus,
+  Phone,
+  BarChart2,
+  CreditCard,
+  LogOut,
 } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/leads", label: "Leads", icon: Users },
+  { href: "/kanban", label: "Kanban", icon: Kanban },
   { href: "/properties", label: "Properties", icon: Building2 },
   { href: "/campaigns", label: "Campaigns", icon: Megaphone },
+  { href: "/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/calendar", label: "Calendar", icon: Calendar },
+  { href: "/inbox", label: "Inbox", icon: Inbox },
+  { href: "/sequences", label: "Sequences", icon: GitBranch },
+  { href: "/calling", label: "Calling", icon: Phone },
   { href: "/n8n", label: "n8n Workflows", icon: Zap },
+  { href: "/team", label: "Team", icon: UserPlus },
+  { href: "/reporting", label: "Reports", icon: BarChart2 },
+  { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: session } = useSession();
 
   // Close drawer on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  const user = session?.user;
+  const initials = user?.name
+    ? user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
+    : "U";
 
   const logoBlock = (
     <div className="flex items-center gap-2.5">
@@ -48,7 +74,7 @@ export default function Sidebar() {
   const navContent = (
     <>
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active =
             href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -66,21 +92,26 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="px-4 py-4 border-t border-slate-100">
-        <div className="bg-blue-50 rounded-lg p-3">
-          <p className="text-xs font-semibold text-blue-800">Target Markets</p>
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {["🇦🇪 UAE", "🇸🇦 KSA", "🇰🇼 KW", "🇶🇦 QA", "🇪🇬 Abroad"].map((c) => (
-              <span
-                key={c}
-                className="text-xs bg-white text-blue-700 px-1.5 py-0.5 rounded border border-blue-200"
-              >
-                {c}
-              </span>
-            ))}
+      {/* User Footer */}
+      <div className="px-3 py-3 border-t border-slate-100 space-y-2">
+        {user && (
+          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg bg-slate-50">
+            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shrink-0">
+              <span className="text-white text-xs font-bold">{initials}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-900 truncate">{user.name}</p>
+              <p className="text-xs text-slate-500 truncate">{user.email}</p>
+            </div>
           </div>
-        </div>
+        )}
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Sign out</span>
+        </button>
       </div>
     </>
   );

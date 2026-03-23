@@ -29,13 +29,14 @@ interface IncomingLead {
   n8nWorkflowId?: string;
 }
 
-async function saveLead(raw: IncomingLead) {
+async function saveLead(raw: IncomingLead, workspaceId: string) {
   const name = raw.name || `${raw.firstName || ""} ${raw.lastName || ""}`.trim() || "Unknown";
 
-  // Check for duplicate by email or externalId
+  // Check for duplicate by email or externalId within this workspace
   if (raw.email || raw.externalId || raw.apolloId) {
     const existing = await prisma.lead.findFirst({
       where: {
+        workspaceId,
         OR: [
           raw.email ? { email: raw.email } : undefined,
           raw.externalId ? { externalId: raw.externalId } : undefined,
@@ -44,7 +45,6 @@ async function saveLead(raw: IncomingLead) {
       },
     });
     if (existing) {
-      // Update existing lead with new info
       return prisma.lead.update({
         where: { id: existing.id },
         data: {
@@ -59,6 +59,7 @@ async function saveLead(raw: IncomingLead) {
 
   const lead = await prisma.lead.create({
     data: {
+      workspaceId,
       name,
       email: raw.email,
       phone: raw.phone,
@@ -96,7 +97,14 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const leads = Array.isArray(body) ? body : [body];
 
-  const results = await Promise.all(leads.map(saveLead));
+  // workspaceId must be passed as query param (?workspaceId=xxx) or in each lead payload
+  const { searchParams } = new URL(req.url);
+  const workspaceId = searchParams.get("workspaceId") || body.workspaceId || leads[0]?.workspaceId;
+  if (!workspaceId) {
+    return NextResponse.json({ error: "workspaceId required. Pass as ?workspaceId= query param." }, { status: 400 });
+  }
+
+  const results = await Promise.all(leads.map((l: IncomingLead) => saveLead(l, workspaceId)));
 
   // Fire auto-welcome WhatsApp for truly new leads (non-blocking)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

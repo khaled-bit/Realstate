@@ -15,14 +15,15 @@ export async function POST(req: NextRequest) {
   const phone = lead.whatsapp || lead.phone;
   if (!phone) return NextResponse.json({ skipped: true, reason: "no_phone" });
 
-  const config = await prisma.n8nConfig.findUnique({ where: { name: "whatsapp-welcome" } });
+  const workspaceId = lead.workspaceId;
+  const config = await prisma.n8nConfig.findUnique({ where: { workspaceId_name: { workspaceId, name: "whatsapp-welcome" } } });
   if (!config?.isActive) {
     return NextResponse.json({ skipped: true, reason: "workflow_not_configured" });
   }
 
   // Get the welcome template
   const template = await prisma.messageTemplate.findFirst({
-    where: { name: "welcome", isActive: true },
+    where: { workspaceId, name: "welcome", isActive: true },
   });
 
   const message = template?.body
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
     });
 
     await prisma.n8nConfig.update({
-      where: { name: "whatsapp-welcome" },
+      where: { workspaceId_name: { workspaceId, name: "whatsapp-welcome" } },
       data: { lastTriggered: new Date() },
     });
 
